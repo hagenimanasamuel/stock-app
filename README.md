@@ -1,2 +1,2 @@
 # stock-app
-this is the stock app which is used in the management of the stock such as recording and keeping items and products
+this is the stock app which is used in the management of the stock such as recording and keeping items and products and it is developed by HAGENIMANA Samuel
