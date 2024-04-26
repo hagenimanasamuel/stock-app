@@ -6,6 +6,7 @@ const mysql = require("mysql2");
 const multer = require('multer');
 const PORT = process.env.PORT;
 
+// Multer configuration for file uploads
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, 'public/uploads');
@@ -16,12 +17,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-app.use(express.static(path.join(__dirname, 'public')));
-
-const urlDB = `mysql://${process.env.MYSQLUSER}:${process.env.MYSQL_ROOT_PASSWORD}@${process.env.RAILWAY_TCP_PROXY_DOMAIN}:${process.env.RAILWAY_TCP_PROXY_PORT}/${process.env.MYSQL_DATABASE}`
-
+// Database connection
 const connection = mysql.createConnection({
     host: process.env.DB_HOST,
     user: process.env.DB_USERNAME,
@@ -31,9 +27,10 @@ const connection = mysql.createConnection({
 
 connection.connect((err) => {
     if (err) throw err;
-    console.log("Connected to the server successfully");
+    console.log("Connected to the database successfully");
 
-    const createTableQuery = `
+    // Create items table if not exists
+    const createItemsTableQuery = `
         CREATE TABLE IF NOT EXISTS items (
             id INT AUTO_INCREMENT PRIMARY KEY,
             name VARCHAR(255) NOT NULL,
@@ -42,12 +39,33 @@ connection.connect((err) => {
             date DATE
         )
     `;
-    connection.query(createTableQuery, (err, result) => {
+    connection.query(createItemsTableQuery, (err, result) => {
         if (err) throw err;
         console.log("Items table created successfully");
     });
+
+    // Create users table if not exists
+    const createUsersTableQuery = `
+        CREATE TABLE IF NOT EXISTS users (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            description TEXT,
+            image VARCHAR(255),
+            occupation VARCHAR(255)
+        )
+    `;
+    connection.query(createUsersTableQuery, (err, result) => {
+        if (err) throw err;
+        console.log("Users table created successfully");
+    });
 });
 
+// Set up views and static files
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Route to render the home page with uploaded items
 app.get('/', (req, res) => {
     const sql = "SELECT * FROM items";
     connection.query(sql, (err, items) => {
@@ -56,56 +74,35 @@ app.get('/', (req, res) => {
     });
 });
 
-app.get('/upload', (req, res) => {
-    res.render('upload');
-});
-app.get('/users', (req, res) => {
-    res.render('user');
+// Route to render the form for adding a new user
+app.get('/adduser', (req, res) => {
+    res.render('addUser');
 });
 
-app.post('/upload', upload.single('image'), (req, res) => {
-    const { name, description, date } = req.body;
+// Route to handle adding a new user
+app.post('/adduser', upload.single('image'), (req, res) => {
+    const { name, description, occupation } = req.body;
     const image = req.file.filename;
 
-    const sql = "INSERT INTO items (name, description, image, date) VALUES (?, ?, ?, ?)";
-    connection.query(sql, [name, description, image, date], (err, result) => {
+    const sql = "INSERT INTO users (name, description, image, occupation) VALUES (?, ?, ?, ?)";
+    connection.query(sql, [name, description, image, occupation], (err, result) => {
         if (err) throw err;
-        console.log("Data inserted successfully");
-        res.redirect('/');
+        console.log("User added successfully");
+        res.redirect('/users');
     });
 });
 
-app.post('/edit/:id', upload.single('image'), (req, res) => {
-    const { name, description, date } = req.body;
-    const image = req.file ? req.file.filename : '';
-    const id = req.params.id;
-
-    let sql = "UPDATE items SET name = ?, description = ?, image = ?, date = ? WHERE id = ?";
-    let values = [name, description, image, date, id];
-    if (!image) {
-        sql = "UPDATE items SET name = ?, description = ?, date = ? WHERE id = ?";
-        values = [name, description, date, id];
-    }
-    connection.query(sql, values, (err, result) => {
+// Fetch user data from the database
+app.get('/users', (req, res) => {
+    const sql = "SELECT * FROM users";
+    connection.query(sql, (err, users) => {
         if (err) throw err;
-        console.log("Data updated successfully");
-        res.redirect('/');
+        res.render('user', { users });
     });
 });
 
-app.post('/delete/:id', (req, res) => {
-    const id = req.params.id;
 
-    const sql = "DELETE FROM items WHERE id = ?";
-    connection.query(sql, [id], (err, result) => {
-        if (err) throw err;
-        console.log("Data deleted successfully");
-        res.redirect('/');
-    });
-});
-
+// Start the server
 app.listen(PORT, () => {
     console.log(`App is running on port ${PORT}`);
 });
-
-
