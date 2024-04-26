@@ -59,6 +59,9 @@ app.get('/', (req, res) => {
 app.get('/upload', (req, res) => {
     res.render('upload');
 });
+app.get('/users', (req, res) => {
+    res.render('user');
+});
 
 app.post('/upload', upload.single('image'), (req, res) => {
     const { name, description, date } = req.body;
