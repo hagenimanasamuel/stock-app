@@ -22,13 +22,17 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const urlDB = `mysql://${process.env.MYSQLUSER}:${process.env.MYSQL_ROOT_PASSWORD}@${process.env.RAILWAY_TCP_PROXY_DOMAIN}:${process.env.RAILWAY_TCP_PROXY_PORT}/${process.env.MYSQL_DATABASE}`
 
-const connection = mysql.createConnection({urlDB});
+const connection = mysql.createConnection({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USERNAME,
+    database: process.env.DB_DBNAME,
+    password: process.env.DB_PASSWORD
+});
 
 connection.connect((err) => {
     if (err) throw err;
     console.log("Connected to the server successfully");
 
-    // Create items table if not exists
     const createTableQuery = `
         CREATE TABLE IF NOT EXISTS items (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -102,9 +106,3 @@ app.listen(PORT, () => {
 });
 
 
-
-// old database info
-// host: process.env.DB_HOST,
-//     user: process.env.DB_USERNAME,
-//         database: process.env.DB_DBNAME,
-//             password: process.env.DB_PASSWORD
